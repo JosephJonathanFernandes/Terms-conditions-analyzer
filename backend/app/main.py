@@ -94,12 +94,26 @@ def _code_for_status(status_code: int) -> str:
 def on_startup():
     from app.database.base import Base, engine
 
-    # Idempotent table creation; indexes/tables may already exist in test
-    # environments where pytest_configure pre-creates them.
-    try:
-        Base.metadata.create_all(bind=engine)
-    except Exception:  # pragma: no cover - best-effort; Alembic manages prod schema
-        pass
+    if settings.app_env == "production":
+        # Use Alembic migrations in production for safe schema evolution.
+        try:
+            from alembic import command
+            from alembic.config import Config
+            import os
+
+            alembic_cfg = Config(
+                os.path.join(os.path.dirname(__file__), "..", "alembic.ini")
+            )
+            command.upgrade(alembic_cfg, "head")
+        except Exception as exc:  # pragma: no cover
+            print(f"[ClauseClear] Alembic migration failed: {exc}")
+            Base.metadata.create_all(bind=engine)
+    else:
+        # Idempotent table creation for development and testing.
+        try:
+            Base.metadata.create_all(bind=engine)
+        except Exception:  # pragma: no cover - best-effort; Alembic manages prod schema
+            pass
 
     # Log production configuration warnings.
     for warning in validate_production_settings(settings):
