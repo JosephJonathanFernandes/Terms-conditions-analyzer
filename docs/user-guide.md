@@ -91,6 +91,6 @@ Download a PDF report containing:
 
 ## Tips for Best Results
 
-- **PDFs**: Text-based PDFs work best. Scanned/image-based PDFs may not extract correctly.
+- **PDFs**: Text-based PDFs work best. Scanned/image-based PDFs are processed using OCR (if Tesseract is installed). Without Tesseract, scanned PDFs will show a warning but no text will be extracted.
 - **Websites**: Some sites block automated extraction or require JavaScript. If extraction fails, try pasting the text manually.
 - **Long documents**: Very large documents are truncated to 200,000 characters for performance.

@@ -41,4 +41,52 @@ def test_extract_pdf_empty(tmp_path):
     result = extract_pdf(file_bytes, "empty.pdf")
 
     assert result.extraction_confidence == "low"
-    assert any("OCR" in w for w in result.warnings)
+    # When Tesseract is not installed, OCR is unavailable.
+    from app.services.extraction_service import PytesseractAvailable
+    if not PytesseractAvailable:
+        assert any("OCR unavailable" in w for w in result.warnings)
+
+
+def test_extract_pdf_ocr_unavailable_warning(tmp_path):
+    """Empty PDF with OCR disabled should warn about OCR being unavailable."""
+    from app.services.extraction_service import extract_pdf, PytesseractAvailable
+
+    if PytesseractAvailable:
+        # Skip if Tesseract is installed — we can't easily simulate unavailability.
+        return
+
+    doc = fitz.open()
+    doc.new_page()
+    path = tmp_path / "empty.pdf"
+    doc.save(str(path))
+    doc.close()
+
+    file_bytes = path.read_bytes()
+    result = extract_pdf(file_bytes, "empty.pdf")
+
+    assert result.extraction_confidence == "low"
+    assert any("OCR unavailable" in w for w in result.warnings)
+
+
+def test_extract_pdf_ocr_disabled(tmp_path, monkeypatch):
+    """PDF with OCR disabled should not attempt OCR."""
+    from app.services.extraction_service import extract_pdf
+
+    # Temporarily disable OCR.
+    import app.config as config_module
+    settings = config_module.get_settings()
+    settings.ocr_enabled = False
+
+    doc = fitz.open()
+    doc.new_page()
+    path = tmp_path / "empty.pdf"
+    doc.save(str(path))
+    doc.close()
+
+    file_bytes = path.read_bytes()
+    result = extract_pdf(file_bytes, "empty.pdf")
+
+    assert result.extraction_confidence == "low"
+    assert result.text == ""
+    # Restore setting.
+    settings.ocr_enabled = True

@@ -14,6 +14,7 @@
 - URL validation, SSRF guards, redirect/DNS checks, timeouts, size limits
 - robots.txt respect, legal-page discovery
 - File validation, size limits, filename sanitization, duplicate text removal, metadata extraction
+- **OCR fallback for scanned PDFs** (Tesseract + pytesseract, optional, configurable via .env)
 
 ## Phase 3: Analysis Engine — Complete
 - Clause segmentation into 21 categories (rule-based baseline)
@@ -44,18 +45,17 @@
 - Document CRUD router (list, get, delete, export)
 - Failure status for failed extractions (no unhandled exceptions)
 - Content-hash deduplication short-circuit
-- 70 backend pytest tests, 19 frontend Vitest tests
+- 72 backend pytest tests, 19 frontend Vitest tests
 - Playwright E2E test suite (4 test files)
 - Deployment guide, testing guide, user guide, API docs
 - `.env.example` for backend and frontend
 - Docker deployment guidance
 
 ## Phase 8: Future Enhancements (Backlog)
-- Alembic migrations for schema versioning
 - Multi-worker Redis-backed rate limiting
 - OAuth / user authentication
 - Multi-language support
-- OCR for scanned PDFs
 - Scheduled retention sweep CLI
 - Prometheus metrics endpoint
 - Code-splitting for large frontend bundle
+- OCR language packs (non-English scanned PDFs)

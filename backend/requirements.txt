@@ -18,6 +18,8 @@ python-docx==1.1.0
 beautifulsoup4==4.12.3
 trafilatura==1.6.3
 lxml==5.2.2
+pytesseract==0.3.13
+Pillow==11.1.0
 
 # Optional AI / retrieval
 # openai==1.52.0        # uncomment to use OpenAI-compatible API

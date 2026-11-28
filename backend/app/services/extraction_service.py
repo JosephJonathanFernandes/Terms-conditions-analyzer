@@ -9,12 +9,14 @@ configured maximum.
 import io
 import logging
 import re
+import shutil
 import urllib.request
 from typing import Optional, Tuple
 
 import fitz  # PyMuPDF
 from docx import Document as DocxDocument
 from bs4 import BeautifulSoup
+from PIL import Image
 
 from app.config import settings
 from app.security.ssrf import validate_url
@@ -22,6 +24,19 @@ from app.security.html import sanitize_html, html_to_text
 from app.utils.text import normalize_whitespace, remove_duplicates, truncate, split_paragraphs
 
 logger = logging.getLogger("clauseclear")
+
+# Lazy-import pytesseract so the app works without Tesseract installed.
+try:
+    import pytesseract
+
+    if settings.tesseract_cmd:
+        pytesseract.pytesseract.tesseract_cmd = settings.tesseract_cmd
+    PytesseractAvailable = shutil.which(
+        settings.tesseract_cmd or "tesseract"
+    ) is not None
+except ImportError:
+    pytesseract = None
+    PytesseractAvailable = False
 
 
 class ExtractionResult:
@@ -58,8 +73,30 @@ class ExtractionError(Exception):
     """Raised when text extraction fails."""
 
 
+def _ocr_pdf_page(page: fitz.Page, dpi: int = 300, languages: str = "eng") -> str:
+    """Render a PDF page to an image and extract text via OCR.
+
+    Returns empty string if OCR is unavailable or fails.
+    """
+    if not PytesseractAvailable or pytesseract is None:
+        return ""
+
+    try:
+        # Render page to pixmap at the requested DPI.
+        mat = fitz.Matrix(dpi / 72, dpi / 72)
+        pix = page.get_pixmap(matrix=mat)
+        img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+
+        text = pytesseract.image_to_string(img, lang=languages)
+        return text
+    except Exception as exc:
+        logger.warning("OCR failed for page: %s", exc)
+        return ""
+
+
 def extract_pdf(file_bytes: bytes, filename: str) -> ExtractionResult:
-    """Extract text from a PDF file using PyMuPDF."""
+    """Extract text from a PDF file using PyMuPDF, with OCR fallback for
+    scanned/image-based pages."""
     try:
         doc = fitz.open(stream=file_bytes, filetype="pdf")
     except Exception as exc:
@@ -73,14 +110,34 @@ def extract_pdf(file_bytes: bytes, filename: str) -> ExtractionResult:
         metadata = {}
 
     warnings = []
+    ocr_used = False
+
     for page_num, page in enumerate(doc, start=1):
         try:
             page_text = page.get_text("text")
         except Exception as exc:
             logger.warning("Failed to extract page %d: %s", page_num, exc)
             page_text = ""
+
         if page_text.strip():
             texts.append(f"--- Page {page_num} ---\n{page_text}")
+        elif settings.ocr_enabled and PytesseractAvailable:
+            # No extractable text — try OCR (scanned/image-based page).
+            ocr_text = _ocr_pdf_page(
+                page, dpi=settings.ocr_dpi, languages=settings.ocr_languages
+            )
+            if ocr_text.strip():
+                texts.append(f"--- Page {page_num} (OCR) ---\n{ocr_text}")
+                ocr_used = True
+            else:
+                warnings.append(
+                    f"Page {page_num}: no extractable text and OCR returned no results"
+                )
+        elif settings.ocr_enabled and not PytesseractAvailable:
+            warnings.append(
+                f"Page {page_num}: no extractable text; OCR unavailable "
+                "(install Tesseract to process scanned PDFs)"
+            )
 
     page_count = doc.page_count
     doc.close()
@@ -91,7 +148,12 @@ def extract_pdf(file_bytes: bytes, filename: str) -> ExtractionResult:
     confidence = "high"
     if page_count > 0 and not cleaned.strip():
         confidence = "low"
-        warnings.append("PDF contains no extractable text (may be scanned/image-based). OCR is recommended.")
+        warnings.append("PDF contains no extractable text (may be scanned/image-based).")
+    elif ocr_used:
+        confidence = "medium"
+        warnings.append(
+            "Some pages were processed with OCR — accuracy may vary."
+        )
 
     return ExtractionResult(
         text=cleaned,

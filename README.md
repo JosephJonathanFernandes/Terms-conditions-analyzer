@@ -22,6 +22,7 @@
 |---------|-------------|
 | **🔗 URL Ingestion** | Enter a website URL to discover and extract its Terms & Conditions / Privacy Policy |
 | **📄 File Upload** | Upload PDF, DOCX, or TXT files (max 25 MB each) |
+| **🔍 OCR for Scanned PDFs** | Tesseract-powered OCR extracts text from image-based PDFs (optional, requires Tesseract installed) |
 | **📝 Text Input** | Paste legal text directly into the editor |
 | **🔍 Clause Detection** | 21 legal categories (data sharing, arbitration, liability, renewal, etc.) |
 | **⚠️ Risk Engine** | LOW / MEDIUM / HIGH / CRITICAL with explainable rationale and evidence |

@@ -80,7 +80,7 @@ ClauseClear is a full-stack web application that helps ordinary users understand
 1. User submits URL / file / text
 2. Backend validates input (SSRF checks, file type/size, filename sanitization)
 3. Rate limit check per client IP
-4. Extraction service extracts raw text + metadata (PyMuPDF, python-docx, Trafilatura, BeautifulSoup)
+4. Extraction service extracts raw text + metadata (PyMuPDF with OCR fallback via Tesseract, python-docx, Trafilatura, BeautifulSoup)
 5. Text is cleaned (duplicate removal, HTML cleanup, truncation)
 6. Document stored in SQLite with content hash for deduplication
 7. Clause detection engine segments text into clauses and classifies into 21 categories (rule-based baseline)
@@ -115,7 +115,7 @@ Two modes: AI-assisted (LLM) and rule-based fallback (no LLM configured). Struct
 
 ## 8. Testing
 
-- Backend: pytest (70 tests covering API, extraction, detection, risk, documents, rate limiting, errors)
+- Backend: pytest (72 tests covering API, extraction, detection, risk, documents, rate limiting, errors)
 - Frontend: Vitest + React Testing Library (19 component tests)
 - E2E: Playwright (ingestion, history, compare, accessibility)
 

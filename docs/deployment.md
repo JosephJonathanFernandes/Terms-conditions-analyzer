@@ -65,6 +65,28 @@ EXPOSE 8000
 CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 ```
 
+#### OCR Support (for scanned PDFs)
+
+ClauseClear uses Tesseract OCR to extract text from scanned/image-based PDFs. Tesseract is a system dependency — it must be installed separately:
+
+**Ubuntu/Debian:**
+```bash
+sudo apt-get update && sudo apt-get install -y tesseract-ocr
+```
+
+**Windows:**
+Download and install from [UB-Mannheim Tesseract builds](https://github.com/UB-Mannheim/tesseract/wiki), then set `TESSERACT_CMD` in `.env`:
+```
+TESSERACT_CMD=C:\Program Files\Tesseract-OCR\tesseract.exe
+```
+
+**macOS:**
+```bash
+brew install tesseract
+```
+
+Set `OCR_ENABLED=true` in `.env` (default). Without Tesseract installed, scanned PDFs will produce a warning but no text will be extracted.
+
 ### Option 2: Manual (Bare Metal)
 
 #### Backend
@@ -104,6 +126,10 @@ npm run preview   # or serve dist/ with nginx/Caddy
 | `OPENAI_API_KEY` | OpenAI-compatible API key | `` | No (if using LLM) |
 | `MAX_UPLOAD_SIZE_MB` | Max file upload size in MB | `25` | No |
 | `DOCUMENT_RETENTION_DAYS` | Days before auto-deletion | `30` | No |
+| `OCR_ENABLED` | Enable OCR for scanned PDFs | `true` | No |
+| `TESSERACT_CMD` | Path to tesseract executable | `` | No |
+| `OCR_LANGUAGES` | Tesseract language codes | `eng` | No |
+| `OCR_DPI` | DPI for rendering PDF pages | `300` | No |
 
 #### Frontend (`frontend/.env`)
 
